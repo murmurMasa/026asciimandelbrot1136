@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>マンデルブロー集合</title>
+<script>
+var canvas, context, imageData;          //キャンバス
+var timer;                               //タイマー
+var max;                                 //くり返し上限値
+
+function initCanvas() {
+    //キャンバスの取得
+    canvas = document.getElementById("mandelbrot");         //キャンバスのID
+    context = canvas.getContext("2d");                      //キャンバスの描画機能を有効にする
+    imageData = context.getImageData(0, 0, canvas.width, canvas.height);    //キャンバス全体の画像データを取得
+    //描画
+    max = 100;
+    draw();
+}
+
+function startDraw() {
+    //アニメーション描画開始
+    max = 0;
+    timer = setInterval(draw,200);          //0.2秒ごとにdraw()関数を実行（アニメーション用）
+}
+
+function draw() {
+    //RGBの倍率
+    var red = Number(document.getElementById("red").value);     //「Ｒ，Ｇ，Ｂ」のスライダーの値を取得
+    var green = Number(document.getElementById("green").value);
+    var blue = Number(document.getElementById("blue").value);
+
+    //中心座標、ズーム
+    var x0 = Number(document.getElementById("x").value);        //「中心」のスライダーの値を取得
+    var y0 = Number(document.getElementById("y").value);
+    var zoom = Number(document.getElementById("zoom").value);
+
+    //進捗バーを更新
+    document.getElementById("bar").value = max;                 //進捗バーのID
+
+    //マンデルブロー集合の描画
+    //ピクセルを走査
+    for (var y = 0; y<imageData.height; y++) {              //画面の高さ、横幅
+        for(var x = 0; x<imageData.width; x++) {
+            //初期値
+            var zR = 0;                     //Z0=zR+zi=0
+            var zI = 0;
+            var cR = (x-x0)/zoom;           //中心(x0, y0)とズームに応じた位置
+            var cI = (y-y0)/zoom;
+            var r = 0, g = 0, b = 0;        //色は黒
+
+            //マンデルブロー集合の計算（上限値まで繰り返し計算）
+            for(var i = 0; i<max; i++) {                //計算回数の上限（上限を超えたら発散しないとみなす）
+                var tempR = zR * zR - zI * zI + cR;     //Zn+1を計算
+                var tempI = 2 * zR * zI + cI;
+                zR = tempR;
+                zI = tempI;
+
+                //発散
+                if(zR * zR + zI * zI > 4) {             //発散条件（複素数Zの絶対値の二乗が4を超える時）
+                    r = (i*red)%256;                    //発散までの回数により色を変える 256で割った余りを求める
+                    g = (i*green)%256;
+                    b = (i*blue)%256;
+                    break;
+                }
+            }
+            //ピクセルの色を変更
+            imageData.data[(y * imageData.width + x) * 4 + 0] = r;      //(x, y)にあるドットの色を設定
+            imageData.data[(y * imageData.width + x) * 4 + 1] = g;
+            imageData.data[(y * imageData.width + x) * 4 + 2] = b;
+            imageData.data[(y * imageData.width + x) * 4 + 3] = 255;    //透明度は不透明
+        }
+    }
+
+    //描画
+    context.putImageData(imageData, 0, 0);              //キャンバスにマンデルブロー集合を描画する
+
+    //上限値を加算、100を超えると描画終了
+    max++;                      //maxに1を足す
+    if(max > 100) {
+        max = 100;
+        clearInterval(timer);   //タイマーを停止する
+    }
+}
+</script>
+<style>
+form {line-height: 150%}
+#bar {width: 400px}
+[type="range"] {width: 100px}
+[type="button"] {width: 400px}
+</style>
+</head>
+<body onload="initCanvas()">
+<p>マンデルブロー集合</p>
+<hr>
+<canvas id="mandelbrot" width="600" height="600"></canvas>
+<form>
+<progress id="bar" value="0" max="100"></progress>
+<br>
+中心：
+<input type="range" class="set" id="x" value="600"
+ min="0" max="600" step="1" onChange="draw()">
+<input type="range" class="set" id="y" value="600"
+ min="0" max="600" step="1" onChange="draw()">
+ズーム：
+<input type="range" class="set" id="zoom" value="1000"
+ min="100" max="10000" step="50" onChange="draw()"><br>
+R:<input type="range" class="color" id="red" value="40"
+min="0" max="100" step="10" onChange="draw()">
+G:<input type="range" class="color" id="green" value="50"
+min="0" max="100" step="10" onChange="draw()">
+B:<input type="range" class="color" id="blue" value="60"
+min="0" max="100" step="10" onChange="draw()">
+<br>
+<input type="button" value="アニメーション" onclick="startDraw()">
+</form>
+</body>
+</html>
